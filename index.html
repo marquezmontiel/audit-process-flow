@@ -49,7 +49,7 @@
         <div>
             <div class="flex items-center gap-2">
                 <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">Interactive SOP</span>
-                <span class="text-slate-500 text-xs font-semibold">• Version 2.4 Stable</span>
+                <span class="text-slate-500 text-xs font-semibold">• Version 2.5 Collaborative</span>
             </div>
             <h1 class="text-lg md:text-xl font-extrabold text-slate-100 tracking-tight">Mega Audit Evidence Collection Process Map</h1>
             <p class="text-xs text-slate-400 mt-0.5">Horizontal Cross-Functional Architecture & Compliance Lifecycle Flow</p>
@@ -90,20 +90,32 @@
                 <option value="start">🟢 Start Pill</option>
                 <option value="end">🏁 End / Archive Pill</option>
             </select>
-            <input type="text" id="new-item-text" placeholder="Enter process label text..." class="bg-slate-800 text-slate-200 text-xs rounded border border-slate-700 p-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input type="text" id="new-item-text" placeholder="Enter process label text..." class="bg-slate-800 text-slate-200 text-xs rounded border border-slate-700 p-1.5 w-60 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
             
             <button onclick="createNewItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-1.5 rounded transition duration-150 shadow-sm flex items-center gap-1.5">
                 <span>➕ Add Step</span>
             </button>
         </div>
 
-        <!-- Layout Controls -->
-        <div class="flex items-center gap-2">
-            <button onclick="resetToDefault()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded transition duration-150 border border-slate-700 flex items-center gap-1.5" title="Restore Default Settings">
-                <span>↺ Reset SOP Default</span>
+        <!-- Collaborative & Local Saving Controls -->
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Share URL -->
+            <button onclick="generateShareLink()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded transition duration-150 shadow-md flex items-center gap-1.5" title="Generate shareable web link containing your current custom diagram layout">
+                <span>🔗 Share Link</span>
             </button>
-            <button onclick="manualSave()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded transition duration-150 shadow-md flex items-center gap-1.5" title="Commit current configuration to Cache">
-                <span>💾 Save Edits</span>
+            <!-- File Sync -->
+            <button onclick="exportJSON()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded transition duration-150 border border-slate-700 flex items-center gap-1.5" title="Export configurations to file">
+                <span>📤 Export</span>
+            </button>
+            <button onclick="triggerImport()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded transition duration-150 border border-slate-700 flex items-center gap-1.5" title="Import layout from file">
+                <span>📥 Import</span>
+            </button>
+            <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="handleImport(event)" />
+
+            <div class="w-[1px] h-6 bg-slate-800 mx-1"></div>
+
+            <button onclick="resetToDefault()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 text-xs font-semibold px-3 py-1.5 rounded transition duration-150 border border-slate-700 flex items-center gap-1.5" title="Restore Standard SOP configuration">
+                <span>↺ Reset SOP Default</span>
             </button>
         </div>
     </section>
@@ -112,7 +124,7 @@
     <div class="bg-indigo-950/40 border-b border-indigo-900/40 px-6 py-2">
         <p class="text-xs text-indigo-200 flex items-center gap-1.5">
             <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span><strong>UX Architecture Tip:</strong> Drag and drop individual process objects across lanes to restructure workflows. Double-click/select text inside swimlane headers or process blocks to rename them on-the-fly.</span>
+            <span><strong>How to Collaborate:</strong> Modify titles/steps, then click <strong>"🔗 Share Link"</strong>. Paste that copied URL to your team members so they can open and view your exact version.</span>
         </p>
     </div>
 
@@ -204,8 +216,7 @@
             ]
         };
 
-        // Cache-focused initialization
-        let state = JSON.parse(localStorage.getItem('audit_process_map_state_v3')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+        let state;
 
         // Display Alerts
         function showToast(message, type = "success") {
@@ -216,6 +227,102 @@
             setTimeout(() => {
                 toast.className = 'fixed bottom-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white font-semibold transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none z-50';
             }, 3000);
+        }
+
+        // Initialize state reading from URL parameters OR local storage
+        function loadState() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedFlow = urlParams.get('flow');
+
+            if (sharedFlow) {
+                try {
+                    // Decode URL base64 configuration back to standard UTF-8 JSON
+                    const decodedJson = decodeURIComponent(escape(atob(sharedFlow)));
+                    const parsed = JSON.parse(decodedJson);
+                    
+                    if (parsed && Array.isArray(parsed.lanes)) {
+                        state = parsed;
+                        localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+                        
+                        // Clear URL queries so a standard browser refresh doesn't wipe subsequent local edits
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        setTimeout(() => {
+                            showToast("Loaded shared diagram configuration!", "success");
+                        }, 500);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Failed to decode shared link parameter:", e);
+                    showToast("Failed to parse the shared link structure.", "error");
+                }
+            }
+
+            // Fall back to local storage or defaults
+            state = JSON.parse(localStorage.getItem('audit_process_map_state_v3')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+
+        // Generate base64 shareable link to current UI map settings
+        function generateShareLink() {
+            saveCurrentDOMToState();
+            try {
+                const jsonStr = JSON.stringify(state);
+                // Secure UTF-8 string to base64 encoding
+                const encodedState = btoa(unescape(encodeURIComponent(jsonStr)));
+                const shareUrl = `${window.location.origin}${window.location.pathname}?flow=${encodedState}`;
+
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showToast("Shareable configuration link copied to clipboard!", "success");
+                }).catch(err => {
+                    // Fallback input prompt if programmatic clipboard copy is blocked
+                    prompt("Copy your shareable configuration URL below:", shareUrl);
+                });
+            } catch (e) {
+                console.error(e);
+                showToast("Failed to compile shareable link.", "error");
+            }
+        }
+
+        // File-based exporting
+        function exportJSON() {
+            saveCurrentDOMToState();
+            const jsonString = JSON.stringify(state, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(jsonString);
+            
+            const exportFileDefaultName = 'audit_evidence_flow_configuration.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast("Downloaded flow configuration file.", "success");
+        }
+
+        // File-based importing triggers
+        function triggerImport() {
+            document.getElementById('import-file-input').click();
+        }
+
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && Array.isArray(parsed.lanes)) {
+                        state = parsed;
+                        localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+                        renderMap();
+                        showToast("Diagram imported successfully.", "success");
+                    } else {
+                        showToast("Invalid JSON schema structure.", "error");
+                    }
+                } catch (err) {
+                    showToast("Error processing configuration file.", "error");
+                }
+            };
+            reader.readAsText(file);
         }
 
         // Render entire interactive space
@@ -521,6 +628,7 @@
 
         // Initial setup on load
         window.onload = () => {
+            loadState();
             renderMap();
         };
     </script>
