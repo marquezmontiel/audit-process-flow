@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Audit Process Architecture - Swimlane Map</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font for crisp presentation -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom horizontal scroll bar styling for the internal swimlane containers */
+        .lane-dropzone::-webkit-scrollbar {
+            height: 6px;
+        }
+        .lane-dropzone::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 9999px;
+        }
+        .lane-dropzone::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .lane-dropzone::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Smooth outline highlights during active typing inline */
+        [contenteditable="true"]:focus {
+            outline: 2px solid #4f46e5;
+            background-color: #f8fafc;
+            border-radius: 0.375rem;
+            color: #0f172a;
+        }
+        /* Prevent background clashes when editing dark headers */
+        .lane-header[contenteditable="true"]:focus {
+            background-color: rgba(0, 0, 0, 0.25);
+            outline: 2px solid #ffffff;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Utility Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">Interactive SOP</span>
+                <span class="text-slate-500 text-xs font-semibold">• Version 2.4 Stable</span>
+            </div>
+            <h1 class="text-lg md:text-xl font-extrabold text-slate-100 tracking-tight">Mega Audit Evidence Collection Process Map</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Horizontal Cross-Functional Architecture & Compliance Lifecycle Flow</p>
+        </div>
+        
+        <!-- Live Statistics Counter Block -->
+        <div class="flex gap-4 items-center bg-slate-950 border border-slate-800 px-4 py-2 rounded-lg self-start">
+            <div class="text-center border-r border-slate-800 pr-4">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Process Steps</p>
+                <p id="stat-steps" class="text-sm font-extrabold text-indigo-400">0</p>
+            </div>
+            <div class="text-center border-r border-slate-800 pr-4">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Decisions</p>
+                <p id="stat-decisions" class="text-sm font-extrabold text-amber-400">0</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Key Bounds</p>
+                <p id="stat-endpoints" class="text-sm font-extrabold text-emerald-400">0</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Node Factory Controls Bar -->
+    <section class="bg-slate-900/60 border-b border-slate-800 px-6 py-3 flex flex-wrap gap-4 items-center justify-between">
+        <!-- Add Element Controls -->
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Node Editor:</span>
+            </div>
+            <select id="new-item-lane" class="bg-slate-800 text-slate-200 text-xs rounded border border-slate-700 p-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-w-[180px]">
+                <!-- Populated programmatically -->
+            </select>
+            <select id="new-item-type" class="bg-slate-800 text-slate-200 text-xs rounded border border-slate-700 p-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="box">Standard Box (Process Step)</option>
+                <option value="diamond">Decision Diamond (Rotated)</option>
+                <option value="pill">Standard Pill (Milestone)</option>
+                <option value="start">🟢 Start Pill</option>
+                <option value="end">🏁 End / Archive Pill</option>
+            </select>
+            <input type="text" id="new-item-text" placeholder="Enter process label text..." class="bg-slate-800 text-slate-200 text-xs rounded border border-slate-700 p-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            
+            <button onclick="createNewItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-1.5 rounded transition duration-150 shadow-sm flex items-center gap-1.5">
+                <span>➕ Add Step</span>
+            </button>
+        </div>
+
+        <!-- Layout Controls -->
+        <div class="flex items-center gap-2">
+            <button onclick="resetToDefault()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded transition duration-150 border border-slate-700 flex items-center gap-1.5" title="Restore Default Settings">
+                <span>↺ Reset SOP Default</span>
+            </button>
+            <button onclick="manualSave()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded transition duration-150 shadow-md flex items-center gap-1.5" title="Commit current configuration to Cache">
+                <span>💾 Save Edits</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Visual Dashboard Banner -->
+    <div class="bg-indigo-950/40 border-b border-indigo-900/40 px-6 py-2">
+        <p class="text-xs text-indigo-200 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span><strong>UX Architecture Tip:</strong> Drag and drop individual process objects across lanes to restructure workflows. Double-click/select text inside swimlane headers or process blocks to rename them on-the-fly.</span>
+        </p>
+    </div>
+
+    <!-- Main Dynamic Swimlane Container Area -->
+    <main class="flex-grow p-6 lg:p-8 overflow-auto">
+        <div class="max-w-[1700px] mx-auto">
+            <!-- White Swimlane Interior Grid Box -->
+            <div class="bg-white border border-slate-300 rounded-xl shadow-2xl overflow-hidden">
+                <div class="min-w-[1300px] flex flex-col divide-y divide-slate-200" id="swimlane-container">
+                    <!-- Dynamic Rows Rendered Here by Javascript -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Dynamic System Alerts Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white font-semibold transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none z-50"></div>
+
+    <!-- JavaScript Business Logic & Interactions -->
+    <script>
+        // System Config and Default Baseline SOP Flow
+        const DEFAULT_STATE = {
+            lanes: [
+                {
+                    id: "lane-pmo",
+                    title: "Project Management Office (PMO)",
+                    color: "bg-indigo-600",
+                    items: [
+                        { id: "item-pmo-milestone", type: "pill", text: "Continuous Milestone Tracking & SLA Oversight (T-75 Policy Handoff • T-60 Project Plan • T-30 Readiness Freeze)" },
+                        { id: "item-pmo-end", type: "end", text: "🏁 End / Archive" }
+                    ]
+                },
+                {
+                    id: "lane-compliance",
+                    title: "Compliance Assessor / Execution Lead (PSAT)",
+                    color: "bg-blue-600",
+                    items: [
+                        { id: "item-comp-intake", type: "box", text: "Ticket intake" },
+                        { id: "item-comp-search", type: "box", text: "Search past cycles in Buganizer" },
+                        { id: "item-comp-triage", type: "diamond", text: "Triage Naming Convention?" },
+                        { id: "item-comp-screenshot", type: "box", text: "AutoScreenshot metadata capture" },
+                        { id: "item-comp-classify", type: "diamond", text: "Classify: Static vs. Logs vs. SME?" },
+                        { id: "item-comp-redact", type: "box", text: "Permanent burn-in PII redaction" },
+                        { id: "item-comp-upload", type: "box", text: "GGRC upload & submit" }
+                    ]
+                },
+                {
+                    id: "lane-internal",
+                    title: "Internal Auditor (PSAT 2LoD Scope)",
+                    color: "bg-sky-600",
+                    items: [
+                        { id: "item-int-policy", type: "box", text: "Direct policy repo retrieval" },
+                        { id: "item-int-code", type: "box", text: "Code review extraction from Critique CLs" },
+                        { id: "item-int-handoff", type: "box", text: "Manual log handoff" }
+                    ]
+                },
+                {
+                    id: "lane-sme",
+                    title: "Control Domain SMEs (TPRM / BCDR / Infra)",
+                    color: "bg-purple-600",
+                    items: [
+                        { id: "item-sme-restricted", type: "box", text: "Restricted system log exports" },
+                        { id: "item-sme-walkthrough", type: "box", text: "Live walkthrough hosting" }
+                    ]
+                },
+                {
+                    id: "lane-external",
+                    title: "External Auditors (EY / Coalfire) & Regulators",
+                    color: "bg-rose-600",
+                    items: [
+                        { id: "item-ext-start", type: "start", text: "🟢 Start" },
+                        { id: "item-ext-ticket", type: "box", text: "GGRC ticket generation" },
+                        { id: "item-ext-evaluate", type: "box", text: "Evidence evaluation against criteria" },
+                        { id: "item-ext-decision", type: "diamond", text: "Auditor Decision: Rework vs. Approved?" },
+                        { id: "item-ext-rework", type: "box", text: "Rework flag" },
+                        { id: "item-ext-signoff", type: "box", text: "Final completion sign-off" }
+                    ]
+                },
+                {
+                    id: "lane-isms",
+                    title: "ISMS Owner / PA Signatory",
+                    color: "bg-emerald-600",
+                    items: [
+                        { id: "item-isms-scope", type: "box", text: "Scope exception validation" },
+                        { id: "item-isms-clearance", type: "box", text: "Rework clearance" },
+                        { id: "item-isms-closeout", type: "box", text: "Final management closeout attestation" }
+                    ]
+                }
+            ]
+        };
+
+        // Cache-focused initialization
+        let state = JSON.parse(localStorage.getItem('audit_process_map_state_v3')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+        // Display Alerts
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.className = `fixed bottom-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white font-semibold transition-all duration-300 transform translate-y-0 opacity-100 z-50 ${type === 'success' ? 'bg-emerald-600 border border-emerald-500' : 'bg-rose-600 border border-rose-500'}`;
+            
+            setTimeout(() => {
+                toast.className = 'fixed bottom-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white font-semibold transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none z-50';
+            }, 3000);
+        }
+
+        // Render entire interactive space
+        function renderMap() {
+            const container = document.getElementById('swimlane-container');
+            container.innerHTML = '';
+
+            state.lanes.forEach(lane => {
+                // Outer Flexbox Row
+                const row = document.createElement('div');
+                row.className = 'flex items-stretch lane-row';
+                row.setAttribute('data-lane-row-id', lane.id);
+
+                // Left Header Column with ContentEditable Title
+                const headerCol = document.createElement('div');
+                headerCol.className = `w-40 flex-shrink-0 flex items-center justify-center p-4 text-center text-white font-extrabold select-text text-xs tracking-tight leading-tight border-r border-slate-200 transition-colors duration-200 ${lane.color} lane-header`;
+                headerCol.setAttribute('contenteditable', 'true');
+                headerCol.setAttribute('data-lane-header-id', lane.id);
+                headerCol.innerText = lane.title;
+                row.appendChild(headerCol);
+
+                // Right Process steps scroll flow zone
+                const contentCol = document.createElement('div');
+                contentCol.className = 'flex-grow flex items-center gap-4 p-6 overflow-x-auto bg-slate-50/50 lane-dropzone min-h-[160px] transition-colors duration-150';
+                contentCol.setAttribute('data-lane-id', lane.id);
+
+                // Loop and inject nodes with connector symbols
+                lane.items.forEach((item, index) => {
+                    const nodeMarkup = createNodeElement(item, lane.id);
+                    contentCol.appendChild(nodeMarkup);
+
+                    // If not the last node, inject process flow connector symbol
+                    if (index < lane.items.length - 1) {
+                        const connector = document.createElement('div');
+                        connector.className = 'text-slate-300 font-extrabold text-base select-none flex-shrink-0';
+                        connector.innerText = '➔';
+                        contentCol.appendChild(connector);
+                    }
+                });
+
+                row.appendChild(contentCol);
+                container.appendChild(row);
+            });
+
+            // Re-apply drop & focus listener mappings to dynamic elements
+            setupDragAndDrop();
+            populateLaneDropdown();
+            updateStats();
+        }
+
+        // Generate specific stylized nodes matching enterprise BPMN guidelines
+        function createNodeElement(item, laneId) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'draggable-item flex-shrink-0 cursor-grab active:cursor-grabbing relative select-none';
+            wrapper.setAttribute('draggable', 'true');
+            wrapper.setAttribute('data-item-id', item.id);
+            wrapper.setAttribute('data-item-type', item.type);
+
+            // Base elements according to styling specs
+            if (item.type === 'box') {
+                // Standard Process Card
+                wrapper.className += ' w-40 h-20 bg-white border-2 border-slate-300 rounded-lg shadow-sm flex items-center justify-center p-3 text-center text-[11px] font-semibold text-slate-800 hover:border-indigo-500 hover:shadow transition-all group';
+                wrapper.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center select-text outline-none" contenteditable="true">
+                        ${item.text}
+                    </div>
+                    <button class="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center text-[9px] shadow opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 font-bold" onclick="deleteItem('${laneId}', '${item.id}')" title="Delete Step">✕</button>
+                `;
+            } else if (item.type === 'diamond') {
+                // BPMN Geometric Rotated Decision Diamond
+                wrapper.className += ' relative w-24 h-24 flex items-center justify-center group';
+                wrapper.innerHTML = `
+                    <!-- 45-degree Rotated Visual Background -->
+                    <div class="absolute w-[68px] h-[68px] rotate-45 border-2 border-amber-400 bg-amber-50 shadow-sm rounded group-hover:border-amber-500 transition-colors"></div>
+                    <!-- Unrotated editable text node inside -->
+                    <div class="absolute inset-0 flex items-center justify-center text-center text-[10px] font-extrabold text-amber-950 px-3 select-text outline-none leading-tight" contenteditable="true">
+                        ${item.text}
+                    </div>
+                    <button class="absolute top-0 right-0 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center text-[9px] shadow opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 z-10 font-bold" onclick="deleteItem('${laneId}', '${item.id}')" title="Delete Decision">✕</button>
+                `;
+            } else {
+                // Capsule Pills (Standard, Start, and End States)
+                let colorClasses = 'border-indigo-300 bg-indigo-50 text-indigo-950';
+                if (item.type === 'start') colorClasses = 'border-emerald-400 bg-emerald-50 text-emerald-950';
+                if (item.type === 'end') colorClasses = 'border-slate-400 bg-slate-100 text-slate-900';
+
+                wrapper.className += ` border-2 rounded-full px-5 py-2.5 shadow-sm text-xs font-bold hover:shadow transition-all group max-w-sm ${colorClasses}`;
+                wrapper.innerHTML = `
+                    <div class="select-text outline-none text-center" contenteditable="true">
+                        ${item.text}
+                    </div>
+                    <button class="absolute -top-1 -right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] shadow opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 font-bold" onclick="deleteItem('${laneId}', '${item.id}')" title="Delete Step">✕</button>
+                `;
+            }
+
+            return wrapper;
+        }
+
+        // Scraping the UI Elements back to Javascript States in dynamic real-time
+        function saveCurrentDOMToState() {
+            const updatedLanes = [];
+            document.querySelectorAll('.lane-row').forEach(row => {
+                const laneId = row.getAttribute('data-lane-row-id');
+                const headerEl = row.querySelector('[data-lane-header-id]');
+                const laneTitle = headerEl ? headerEl.innerText.trim() : 'Unnamed Lane';
+
+                const dropzone = row.querySelector('.lane-dropzone');
+                const itemElements = dropzone.querySelectorAll('.draggable-item');
+                const items = [];
+
+                itemElements.forEach(el => {
+                    const itemId = el.getAttribute('data-item-id');
+                    const type = el.getAttribute('data-item-type');
+                    
+                    // Look inside both standard items & geometric shapes
+                    const editableTextEl = el.querySelector('[contenteditable="true"]');
+                    const text = editableTextEl ? editableTextEl.innerText.trim() : '';
+                    
+                    items.push({ id: itemId, type, text });
+                });
+
+                // Maintain header colors
+                const colorClass = Array.from(headerEl.classList).find(c => c.startsWith('bg-')) || 'bg-slate-600';
+
+                updatedLanes.push({
+                    id: laneId,
+                    title: laneTitle,
+                    color: colorClass,
+                    items: items
+                });
+            });
+
+            state.lanes = updatedLanes;
+            localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+        }
+
+        // Drag & Drop Calculations for Horizontally Sorted Grid Items
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - (box.left + box.width / 2);
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // Apply HTML5 interactive listeners
+        function setupDragAndDrop() {
+            const draggables = document.querySelectorAll('.draggable-item');
+            const dropzones = document.querySelectorAll('.lane-dropzone');
+
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    draggable.classList.add('dragging', 'opacity-30');
+                });
+
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging', 'opacity-30');
+                    saveCurrentDOMToState();
+                    renderMap(); // Re-renders cleanly to place connectors (arrows)
+                });
+            });
+
+            dropzones.forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const draggingItem = document.querySelector('.dragging');
+                    if (!draggingItem) return;
+                    
+                    const afterElement = getDragAfterElement(zone, e.clientX);
+                    if (afterElement == null) {
+                        zone.appendChild(draggingItem);
+                    } else {
+                        zone.insertBefore(draggingItem, afterElement);
+                    }
+                });
+
+                zone.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('bg-indigo-50/50');
+                });
+
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('bg-indigo-50/50');
+                });
+
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('bg-indigo-50/50');
+                });
+            });
+
+            // Prevent drag operations while actively selecting and typing inside textareas
+            document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+                el.addEventListener('focus', () => {
+                    const dragParent = el.closest('.draggable-item');
+                    if (dragParent) dragParent.setAttribute('draggable', 'false');
+                });
+                el.addEventListener('blur', () => {
+                    const dragParent = el.closest('.draggable-item');
+                    if (dragParent) dragParent.setAttribute('draggable', 'true');
+                });
+            });
+        }
+
+        // Handle focus out/blurs from editable nodes to serialize configuration state instantly
+        document.addEventListener('blur', e => {
+            if (e.target.hasAttribute('contenteditable')) {
+                saveCurrentDOMToState();
+                updateStats();
+            }
+        }, true);
+
+        // Populate Lane Select options in dynamic Node Factory
+        function populateLaneDropdown() {
+            const select = document.getElementById('new-item-lane');
+            if (!select) return;
+            const savedValue = select.value;
+            select.innerHTML = '';
+            state.lanes.forEach(lane => {
+                const opt = document.createElement('option');
+                opt.value = lane.id;
+                opt.innerText = lane.title;
+                select.appendChild(opt);
+            });
+            if (savedValue) select.value = savedValue;
+        }
+
+        // Live calculation metrics update
+        function updateStats() {
+            let totalSteps = 0;
+            let decisionNodes = 0;
+            let boundsNodes = 0;
+
+            state.lanes.forEach(l => {
+                l.items.forEach(item => {
+                    if (item.type === 'diamond') decisionNodes++;
+                    else if (item.type === 'end' || item.type === 'start') boundsNodes++;
+                    else totalSteps++;
+                });
+            });
+
+            document.getElementById('stat-steps').innerText = totalSteps;
+            document.getElementById('stat-decisions').innerText = decisionNodes;
+            document.getElementById('stat-endpoints').innerText = boundsNodes;
+        }
+
+        // Create Custom Nodes from Menu Bar
+        function createNewItem() {
+            const laneId = document.getElementById('new-item-lane').value;
+            const type = document.getElementById('new-item-type').value;
+            const textInput = document.getElementById('new-item-text');
+            const text = textInput.value.trim() || "Process Node Description";
+
+            const newItem = {
+                id: 'custom-' + Date.now(),
+                type: type,
+                text: text
+            };
+
+            const lane = state.lanes.find(l => l.id === laneId);
+            if (lane) {
+                lane.items.push(newItem);
+                localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+                renderMap();
+                textInput.value = '';
+                showToast("Process object successfully created & linked.", "success");
+            }
+        }
+
+        // Detach step from execution array
+        function deleteItem(laneId, itemId) {
+            event.stopPropagation(); // Avoid triggering parents
+            const lane = state.lanes.find(l => l.id === laneId);
+            if (lane) {
+                lane.items = lane.items.filter(item => item.id !== itemId);
+                localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+                renderMap();
+                showToast("Process node removed.", "success");
+            }
+        }
+
+        // Trigger safe storage backup
+        function manualSave() {
+            saveCurrentDOMToState();
+            showToast("System configurations backed up successfully to Browser Storage.", "success");
+        }
+
+        // Tear down storage and reload standard baseline structures
+        function resetToDefault() {
+            if (confirm("Are you sure you want to reset all custom items and text back to the original SOP default layout?")) {
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                localStorage.setItem('audit_process_map_state_v3', JSON.stringify(state));
+                renderMap();
+                showToast("Standard baseline structures restored.", "success");
+            }
+        }
+
+        // Initial setup on load
+        window.onload = () => {
+            renderMap();
+        };
+    </script>
+</body>
+</html>
